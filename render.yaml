@@ -1,0 +1,55 @@
+# Render blueprint — one-shot deploy of the tabletop exercise app.
+#
+# Apply this from the Render dashboard:
+#   1. https://dashboard.render.com/blueprints → "New Blueprint"
+#   2. Connect this GitHub repo
+#   3. Render reads this file and creates: 1 Postgres + 2 web services
+#   4. Fill ANTHROPIC_API_KEY when prompted; SECRET_KEY auto-generates
+#
+# After the first deploy, the services don't know each other's URLs yet.
+# Render gives stable URLs like https://ttx-backend.onrender.com — set:
+#   - On `ttx-frontend`: NEXT_PUBLIC_API_URL = https://ttx-backend.onrender.com/api/v1
+#   - On `ttx-backend`:  FRONTEND_URL       = https://ttx-frontend.onrender.com
+# Both services redeploy automatically when env vars change.
+
+databases:
+  - name: ttx-postgres
+    plan: free
+    databaseName: tabletop_db
+    user: tabletop_user
+
+services:
+  - type: web
+    name: ttx-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: ttx-postgres
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false           # Render prompts you for this on first deploy
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false           # Set after frontend URL is known
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-6
+      - key: ANTHROPIC_MAX_TOKENS
+        value: "16000"
+
+  - type: web
+    name: ttx-frontend
+    runtime: docker
+    plan: free
+    rootDir: frontend
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: NEXT_PUBLIC_API_URL
+        sync: false           # Set after backend URL is known (then redeploy)
