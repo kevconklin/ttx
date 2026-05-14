@@ -13,6 +13,9 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
+# Next.js 14 standalone defaults to localhost; force it to bind on all
+# interfaces so platform load balancers (Render, Fly, etc.) can reach it.
+ENV HOSTNAME=0.0.0.0
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
