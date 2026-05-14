@@ -5,6 +5,11 @@ RUN npm install --no-audit --no-fund
 
 FROM node:20-alpine AS builder
 WORKDIR /app
+# NEXT_PUBLIC_* vars are baked into the JS bundle at build time, not runtime.
+# Render passes this through when the env var is flagged "Available at build"
+# in the service's Environment tab (and we pass it as --build-arg locally).
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
